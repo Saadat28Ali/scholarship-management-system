@@ -41,7 +41,7 @@ def login():
 # --------------------------------------------------
 
 	return TemplateResponse(True, "User found.", {
-		token: createToken({
+		"token": createToken({
 			"email": req_json["email"],
 			"password": req_json["password"],
 			"role": req_json["role"]

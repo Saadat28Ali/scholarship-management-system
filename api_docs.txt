@@ -1,0 +1,46 @@
+Return structure (all endpoints): {
+	"success": True,
+	"msg": "",
+	"details": {
+		"key": "value"
+		...
+	}
+}
+
+GET /health
+
+POST /login 
+JSON: {
+	"email": "",
+	"password: ""
+}
+
+POST /register
+JSON: {
+	"name": "",
+	"email": "",
+	"password": ""
+}
+
+POST /scholarships
+JSON: {
+	"offset": 0,
+	"limit": 5
+}
+
+POST /verify
+form-data: {
+	file: <image file>,
+	document_type: ""
+}
+
+POST /applications
+JSON: {
+	"offset": 0,
+	"limit": 5
+}
+
+POST /dashboard
+JSON: {
+	"days": 0
+}
