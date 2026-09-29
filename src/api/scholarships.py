@@ -2,6 +2,8 @@ from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
 
+from flask import request;
+
 def scholarships():
 	req_json: request.get_json();
 	if not checkDictShape(req_json, {

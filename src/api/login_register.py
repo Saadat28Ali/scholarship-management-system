@@ -1,5 +1,6 @@
 from ..util.check_dict_shape import checkDictShape;
 from ..util.template_response import TemplateResponse;
+from flask import request;
 
 def login():
 
@@ -40,7 +41,8 @@ def login():
 	return TemplateResponse(True, "User found.", {
 		token: createToken({
 			"email": req_json["email"],
-			"password": req_json["password"]
+			"password": req_json["password"],
+			"role": req_json["role"]
 		})
 	}).getJSON();
 
