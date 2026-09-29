@@ -8,6 +8,7 @@ from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
 from ..ai.connect import connect;
 from ..util.get_token_data import getTokenData;
+from ..db.queries import searchUser, searchApplications, createDocument, createAuditLog;
 
 ROOT_DIR: str = path.abspath(getcwd());
 
@@ -55,7 +56,7 @@ async def verify():
 		request.files["file"].save(fh);
 		print(f"File saved as {filename}.");
 
-	result: dict = searchApplication(application_id=application_id);
+	result: dict = searchApplications(application_id=application_id);
 	if not result.success:
 		return TemplateResponse(msg="Could not find application. DB err: " + result.msg, details={
 			"form": request.form

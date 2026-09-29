@@ -1,5 +1,7 @@
 from ..util.check_dict_shape import checkDictShape;
 from ..util.template_response import TemplateResponse;
+from ..db.queries import searchUser, createUser;
+
 from flask import request;
 
 def login():
@@ -64,7 +66,7 @@ def register():
 # Searching for user in DB
 # --------------------------------------------------
 
-	result: dict = searchUser(req_json.email, req_json.password, "student");
+	result: dict = searchUser(req_json.email, None, "student");
 	if not result["success"]:
 		return TemplateResponse(msg="DB Err: " + result["msg"], details={
 			"req_json": req_json
