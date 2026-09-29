@@ -1,6 +1,7 @@
 from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
+from flask import request;
 
 def applications():
 	req_json: dict = request.get_json();
