@@ -51,6 +51,7 @@ def applications():
 	return TemplateResponse(success=True, msg="Applications found.", details={
 		"rows": [
 			filterDictByKeys(row, {
+				"application_id",
 				"user_name",
 				"scholarship_name",
 				"status",
