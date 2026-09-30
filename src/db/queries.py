@@ -1,5 +1,4 @@
 from mysql.connector import Error, IntegrityError
-import hmac
 import math
 from contextlib import contextmanager
 from datetime import date, datetime
