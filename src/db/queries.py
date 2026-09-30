@@ -1,16 +1,16 @@
 from mysql.connector import Error, IntegrityError
-from werkzeug.security import generate_password_hash, check_password_hash
-from .connection import getConnection
+import hmac
 import math
 from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
 
+from .connection import getConnection
+from ..util.template_response import TemplateResponse; 
 
 
 ROLES = {"student", "officer"}
 AUDIT_RESULTS = {"tampered", "verified"}
-MAX_LIMIT = 100
 
 
 @contextmanager
@@ -23,16 +23,8 @@ def _cursor(dictionary: bool = False):
     finally:
         cur.close()
         conn.close()
- 
- 
-def _ok(details: dict | None = None) -> dict:
-    return {"success": True, "msg": "OK", "details": details or {}}
- 
- 
-def _fail(msg: str, details: dict | None = None) -> dict:
-    return {"success": False, "msg": msg, "details": details or {}}
- 
- 
+
+
 def _serialize(row: dict) -> dict:
     """Make DB values JSON-safe (dates -> ISO strings, Decimal -> float)."""
     out = {}
@@ -44,20 +36,11 @@ def _serialize(row: dict) -> dict:
         else:
             out[k] = v
     return out
- 
- 
-def _page(offset, limit) -> tuple[int, int]:
-    try:
-        offset, limit = int(offset), int(limit)
-    except (TypeError, ValueError):
-        raise ValueError("offset and limit must be integers.")
-    if offset < 0 or limit < 1:
-        raise ValueError("offset must be >= 0 and limit must be >= 1.")
-    return offset, min(limit, MAX_LIMIT)
 
 
+# Users
 
-def createUser(name: str, email: str, password: str, role: str) -> dict:
+def createUser(name: str, email: str, password: str, role: str) -> TemplateResponse:
     """Insert a new user. On success, details["id"] holds the new user's id."""
     conn = cur = None
     try:
@@ -65,64 +48,57 @@ def createUser(name: str, email: str, password: str, role: str) -> dict:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO users (name, email, password_hash, role) VALUES (%s, %s, %s, %s)",
-            (name, email, generate_password_hash(password), role),
+            (name, email, password, role),  # 'password' is the hash from the frontend
         )
         conn.commit()
-        return {"success": True, "msg": "OK", "details": {"id": cur.lastrowid}}
+        return TemplateResponse(True, "OK", {"id": cur.lastrowid})
     except IntegrityError:
-        if conn: conn.rollback()
-        return {"success": False, "msg": "User already exists.", "details": {}}
+        if conn:
+            conn.rollback()
+        return TemplateResponse(False, "User already exists.", {})
     except Error as e:
-        if conn: conn.rollback()
-        return {"success": False, "msg": str(e), "details": {}}
+        if conn:
+            conn.rollback()
+        return TemplateResponse(False, str(e), {})
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
-def searchUser(email: str, password: str | None, role: str) -> dict:
+def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
     """
     Login:    searchUser(email, password, role) -> details["row"] is the user, or None if no match.
     Register: searchUser(email, None, role)     -> existence check only (password not verified).
     """
-    conn = cur = None
     try:
-        conn = getConnection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute(
-            "SELECT id, name, email, role, password_hash FROM users "
-            "WHERE email = %s AND role = %s LIMIT 1",
-            (email, role),
-        )
-        row = cur.fetchone()
+        with _cursor(dictionary=True) as (_, cur):
+            cur.execute(
+                "SELECT id, name, email, role, password_hash FROM users "
+                "WHERE email = %s AND role = %s LIMIT 1",
+                (email, role),
+            )
+            row = cur.fetchone()
 
         if row is not None and password is not None:
-            if not check_password_hash(row["password_hash"], password):
+            stored = str(row["password_hash"]).encode()
+            supplied = str(password).encode()
+            if not hmac.compare_digest(stored, supplied):
                 row = None
 
         if row is not None:
             row.pop("password_hash")
 
-        return {"success": True, "msg": "OK", "details": {"row": row}}
+        return TemplateResponse(True, "OK", {"row": row})
     except Error as e:
-        return {"success": False, "msg": str(e), "details": {}}
-    finally:
-        if cur: cur.close()
-        if conn: conn.close()
-
-
-
+        return TemplateResponse(False, str(e), {})
 
 
 # Scholarships
 
- 
-def getScholarships(offset: int, limit: int) -> dict:
+def getScholarships(offset: int, limit: int) -> TemplateResponse:
     """details["rows"] = list of scholarships, or None if there are none."""
-    try:
-        offset, limit = _page(offset, limit)
-    except ValueError as e:
-        return _fail(str(e))
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(
@@ -132,24 +108,18 @@ def getScholarships(offset: int, limit: int) -> dict:
                 (limit, offset),
             )
             rows = [_serialize(r) for r in cur.fetchall()]
-        return _ok({"rows": rows or None})
+        return TemplateResponse(True, "OK", {"rows": rows or None})
     except Error as e:
-        return _fail(str(e))
- 
- 
+        return TemplateResponse(False, str(e), {})
+
+
 # Applications
 
- 
-def getApplications(user_id: int | None, offset: int, limit: int) -> dict:
+def getApplications(user_id: int | None, offset: int, limit: int) -> TemplateResponse:
     """
     user_id=None -> all applications (officer view); user_id=<id> -> that student's only.
     details["rows"] = list of applications, or None if there are none.
     """
-    try:
-        offset, limit = _page(offset, limit)
-    except ValueError as e:
-        return _fail(str(e))
- 
     query = (
         "SELECT a.id, u.name AS user_name, s.name AS scholarship_name, a.status, "
         "a.education_level, a.passing_percentage, a.income, "
@@ -164,17 +134,17 @@ def getApplications(user_id: int | None, offset: int, limit: int) -> dict:
         params.append(user_id)
     query += "ORDER BY a.created_at DESC, a.id DESC LIMIT %s OFFSET %s"
     params += [limit, offset]
- 
+
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(query, tuple(params))
             rows = [_serialize(r) for r in cur.fetchall()]
-        return _ok({"rows": rows or None})
+        return TemplateResponse(True, "OK", {"rows": rows or None})
     except Error as e:
-        return _fail(str(e))
- 
- 
-def searchApplications(application_id: int) -> dict:
+        return TemplateResponse(False, str(e), {})
+
+
+def searchApplications(application_id: int) -> TemplateResponse:
     """
     details["row"] = the application (with user/scholarship names) plus its
     "documents" and "audit_logs" lists, or None if the application doesn't exist.
@@ -194,32 +164,31 @@ def searchApplications(application_id: int) -> dict:
             )
             row = cur.fetchone()
             if row is None:
-                return _ok({"row": None})
+                return TemplateResponse(True, "OK", {"row": None})
             row = _serialize(row)
- 
+
             cur.execute(
                 "SELECT id, type, path, created_at AS `timestamp` FROM documents "
                 "WHERE application_id = %s ORDER BY id ASC",
                 (application_id,),
             )
             row["documents"] = [_serialize(r) for r in cur.fetchall()]
- 
+
             cur.execute(
                 "SELECT id, document_id, result, confidence, created_at AS `timestamp` "
                 "FROM audit_logs WHERE application_id = %s ORDER BY id DESC",
                 (application_id,),
             )
             row["audit_logs"] = [_serialize(r) for r in cur.fetchall()]
- 
-        return _ok({"row": row})
+
+        return TemplateResponse(True, "OK", {"row": row})
     except Error as e:
-        return _fail(str(e))
- 
- 
+        return TemplateResponse(False, str(e), {})
+
+
 # Documents & audit logs (used by /verify)
 
- 
-def createDocument(type: str, user_id: int, application_id: int, path: str) -> dict:
+def createDocument(type: str, user_id: int, application_id: int, path: str) -> TemplateResponse:
     """
     type must be one of the document types defined in the DB (the DB rejects others).
     On success details["id"] = new document id (needed for createAuditLog).
@@ -232,25 +201,25 @@ def createDocument(type: str, user_id: int, application_id: int, path: str) -> d
                 (type, user_id, application_id, path),
             )
             conn.commit()
-            return _ok({"id": cur.lastrowid})
+            return TemplateResponse(True, "OK", {"id": cur.lastrowid})
     except IntegrityError:
-        return _fail("Invalid user_id or application_id.")
+        return TemplateResponse(False, "Invalid user_id or application_id.", {})
     except Error as e:
-        return _fail(str(e))
- 
- 
+        return TemplateResponse(False, str(e), {})
+
+
 def createAuditLog(result: str, confidence: float, document_id: int,
-                   user_id: int, application_id: int) -> dict:
+                   user_id: int, application_id: int) -> TemplateResponse:
     """result = "tampered" | "verified". On success details["id"] = new audit log id."""
     if result not in AUDIT_RESULTS:
-        return _fail("result must be 'tampered' or 'verified'.")
+        return TemplateResponse(False, "result must be 'tampered' or 'verified'.", {})
     try:
         confidence = float(confidence)
     except (TypeError, ValueError):
-        return _fail("confidence must be a number.")
+        return TemplateResponse(False, "confidence must be a number.", {})
     if not math.isfinite(confidence):
-        return _fail("confidence must be a finite number.")
- 
+        return TemplateResponse(False, "confidence must be a finite number.", {})
+
     try:
         with _cursor() as (conn, cur):
             cur.execute(
@@ -259,8 +228,69 @@ def createAuditLog(result: str, confidence: float, document_id: int,
                 (result, confidence, document_id, user_id, application_id),
             )
             conn.commit()
-            return _ok({"id": cur.lastrowid})
+            return TemplateResponse(True, "OK", {"id": cur.lastrowid})
     except IntegrityError:
-        return _fail("Invalid document_id, user_id or application_id.")
+        return TemplateResponse(False, "Invalid document_id, user_id or application_id.", {})
     except Error as e:
-        return _fail(str(e))
+        return TemplateResponse(False, str(e), {})
+
+
+# this i have done on basis of days, that how old is the application, i will change this further according to the db or other changes..
+
+
+def getDashboard(days: int) -> TemplateResponse:
+    """Summary stats for the last `days` days (1-365)."""
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        return TemplateResponse(False, "days must be an integer.", {})
+    if not 1 <= days <= 365:
+        return TemplateResponse(False, "days must be between 1 and 365.", {})
+
+    try:
+        with _cursor(dictionary=True) as (_, cur):
+            cur.execute(
+                "SELECT status, COUNT(*) AS count FROM applications "
+                "WHERE created_at >= NOW() - INTERVAL %s DAY GROUP BY status",
+                (days,),
+            )
+            by_status = {r["status"]: r["count"] for r in cur.fetchall()}
+
+            cur.execute(
+                "SELECT DATE(created_at) AS day, COUNT(*) AS count FROM applications "
+                "WHERE created_at >= NOW() - INTERVAL %s DAY GROUP BY day ORDER BY day",
+                (days,),
+            )
+            per_day = [_serialize(r) for r in cur.fetchall()]
+
+            cur.execute(
+                "SELECT result, COUNT(*) AS count, AVG(confidence) AS avg_confidence "
+                "FROM audit_logs WHERE created_at >= NOW() - INTERVAL %s DAY GROUP BY result",
+                (days,),
+            )
+            audit = {r["result"]: _serialize(r) for r in cur.fetchall()}
+
+            cur.execute(
+                "SELECT COUNT(*) AS count FROM documents "
+                "WHERE created_at >= NOW() - INTERVAL %s DAY",
+                (days,),
+            )
+            documents = cur.fetchone()["count"]
+
+        return TemplateResponse(True, "OK", {
+            "days": days,
+            "applications": {
+                "total": sum(by_status.values()),
+                "by_status": by_status,
+                "per_day": per_day,
+            },
+            "audit": {
+                "verified": audit.get("verified", {}).get("count", 0),
+                "tampered": audit.get("tampered", {}).get("count", 0),
+                "avg_confidence": {k: v["avg_confidence"] for k, v in audit.items()},
+            },
+            "documents": documents,
+        })
+    except Error as e:
+        return TemplateResponse(False, str(e), {})
+ 
