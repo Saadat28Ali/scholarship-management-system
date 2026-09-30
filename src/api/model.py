@@ -7,7 +7,7 @@ from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
 from ..ai.connect import connect;
-from ..util.get_token_data import getTokenData;
+from ..util.jwt.get_token_data import getTokenData;
 from ..db.queries import searchUser, searchApplications, createDocument, createAuditLog;
 
 ROOT_DIR: str = path.abspath(getcwd());

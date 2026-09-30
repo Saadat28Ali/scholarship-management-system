@@ -46,7 +46,7 @@ def createUser(name: str, email: str, password: str, role: str) -> TemplateRespo
 		conn = getConnection()
 		cur = conn.cursor()
 		cur.execute(
-			"INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s)",
+			"INSERT INTO users (name, email, password_hash, role) VALUES (%s, %s, %s, %s)",
 			(name, email, password, role),  # 'password' is the hash from the frontend
 		)
 		conn.commit()
@@ -74,7 +74,7 @@ def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
 	try:
 		with _cursor(dictionary=True) as (_, cur):
 			cur.execute(
-				"SELECT id, name, email, role, password FROM users "
+				"SELECT user_id, name, email, role, password_hash FROM users "
 				"WHERE email = %s AND role = %s LIMIT 1",
 				(email, role),
 			)
@@ -82,18 +82,18 @@ def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
 
 		"""
 		if row is not None and password is not None:
-			stored = str(row["password"]).encode()
+			stored = str(row["password_hash"]).encode()
 			supplied = str(password).encode()
 			if not hmac.compare_digest(stored, supplied):
 				row = None
 		"""
 		if  row is not None and password is not None:
-			if row["password"] != password:
+			if row["password_hash"] != password:
 				row = None;
 
 		"""
 		if row is not None:
-			row.pop("password")
+			row.pop("password_hash")
 		"""
 
 		return TemplateResponse(True, "OK", {"row": row})

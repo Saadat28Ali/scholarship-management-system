@@ -3,13 +3,13 @@ from flask_cors import CORS;
 
 from os import path, getcwd;
 
-from src.util.template_response import TemplateResponse;
-from src.api.login_register import login, register;
-from src.api.health import health;
-from src.api.scholarships import scholarships;
-from src.api.applications import applications;
-from src.api.model import verify;
-from src.api.dashboard import dashboard;
+from .util.template_response import TemplateResponse;
+from .api.login_register import login, register;
+from .api.health import health;
+from .api.scholarships import scholarships;
+from .api.applications import applications;
+from .api.model import verify;
+from .api.dashboard import dashboard;
 
 ROOT_DIR: str = path.abspath(getcwd())
 

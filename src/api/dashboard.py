@@ -1,6 +1,7 @@
 from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
-from ..util.get_token_data import getTokenData;
+from ..util.jwt.get_token_data import getTokenData;
+from ..db.queries import getDashboard;
 
 from flask import request;
 

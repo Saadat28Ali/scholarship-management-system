@@ -1,5 +1,5 @@
-from .jwt.token import getPayload, verifyToken;
-from .template_response import TemplateResponse;
+from .token import getPayload, verifyToken;
+from ..template_response import TemplateResponse;
 from flask import Request;
 
 def getTokenData(request: Request) -> dict:
