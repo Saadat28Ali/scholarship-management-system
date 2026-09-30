@@ -14,6 +14,7 @@ JSON: {
 	"email": "",
 	"password: ""
 }
+return.details.token = <JWT>
 
 POST /register
 JSON: {
@@ -27,20 +28,27 @@ JSON: {
 	"offset": 0,
 	"limit": 5
 }
+return.details.rows = [<scholarships>]
 
 POST /verify
+JWt required
 form-data: {
 	file: <image file>,
 	document_type: ""
 }
+return.details.model_response = <response from AI model>
 
 POST /applications
+JWT required
 JSON: {
 	"offset": 0,
 	"limit": 5
 }
+return.details.rows = [<applications (either based on user, or all applications)>]
 
 POST /dashboard
+JWT required
 JSON: {
 	"days": 0
 }
+return.details.rows = [<dashboard data>]
