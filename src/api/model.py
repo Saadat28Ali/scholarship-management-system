@@ -30,7 +30,7 @@ async def verify():
 			"form": request.form
 		}).getJSON();
 
-	result: dict = searchUser(
+	result: TemplateResponse = searchUser(
 		token_data.details["token_data"]["email"],
 		token_data.details["token_data"]["password"],
 		token_data.details["token_data"]["role"],
@@ -45,6 +45,17 @@ async def verify():
 		}).getJSON();
 
 	user_data: dict = result.details["row"];
+
+	result: TemplateResponse = searchApplications(application_id);
+	if not result.success:
+		return TemplateResponse(msg="DB err: " + result.msg, details={
+			"form": request.form
+		}).getJSON();
+
+	if result.details["row"] is None:
+		return TemplateResponse(msg="Could not find application.", details={
+			"form":> request.form
+		}).getJSON();
 
 	try:
 		mkdir(path.abspath(path.join(ROOT_DIR, "./ocrfiles")));
