@@ -54,7 +54,7 @@ async def verify():
 
 	if result.details["row"] is None:
 		return TemplateResponse(msg="Could not find application.", details={
-			"form":> request.form
+			"form": request.form
 		}).getJSON();
 
 	try:
