@@ -10,7 +10,7 @@ def scholarships():
 # checking request JSON shape
 # --------------------------------------------------
 
-	req_json: request.get_json();
+	req_json = request.get_json();
 	if not checkDictShape(req_json, {
 		"offset",
 		"limit"
