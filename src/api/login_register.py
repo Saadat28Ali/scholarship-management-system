@@ -26,7 +26,7 @@ def login():
 #	result: dict = searchUser(req_json.email, req_json.password, req_json.role);
 	result: TemplateResponse = searchUser(req_json["email"], req_json["password"], req_json["role"]);
 	if not result.success:
-		return TemplateResponse(msg="DB Err: " + result["msg"], details={
+		return TemplateResponse(msg="DB Err: " + result.msg, details={
 			"req_json": req_json
 		}).getJSON();
 
@@ -46,7 +46,8 @@ def login():
 		"token": createToken({
 			"email": req_json["email"],
 			"password": req_json["password"],
-			"role": req_json["role"]
+			"role": req_json["role"],
+			"is_admin": user_details["is_admin"]
 		})
 	}).getJSON();
 
