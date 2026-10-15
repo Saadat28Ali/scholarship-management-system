@@ -121,7 +121,7 @@ def getApplications(user_id: int | None, offset: int, limit: int) -> TemplateRes
     details["rows"] = list of applications, or None if there are none.
     """
     query = (
-        "SELECT a.id, u.name AS user_name, s.name AS scholarship_name, a.status, "
+        "SELECT a.application_id, u.name AS user_name, s.name AS scholarship_name, a.status, "
         "a.education_level, a.passing_percentage, a.income, "
         "a.created_at AS `timestamp`, a.minority_category "
         "FROM applications a "
@@ -152,7 +152,7 @@ def searchApplications(application_id: int) -> TemplateResponse:
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(
-                "SELECT a.id, a.user_id, u.name AS user_name, u.email AS user_email, "
+                "SELECT a.application_id, a.user_id, u.name AS user_name, u.email AS user_email, "
                 "a.scholarship_id, s.name AS scholarship_name, a.status, a.education_level, "
                 "a.passing_percentage, a.income, a.minority_category, "
                 "a.created_at AS `timestamp` "
@@ -201,7 +201,7 @@ def createDocument(type: str, user_id: int, application_id: int, path: str) -> T
                 (type, user_id, application_id, path),
             )
             conn.commit()
-            return TemplateResponse(True, "OK", {"application_id": cur.lastrowid})
+            return TemplateResponse(True, "OK", {"document_id": cur.lastrowid})
     except IntegrityError:
         return TemplateResponse(False, "Invalid user_id or application_id.", {})
     except Error as e:
