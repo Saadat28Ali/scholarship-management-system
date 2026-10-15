@@ -41,7 +41,7 @@ def _serialize(row: dict) -> dict:
 # Users
 
 def createUser(name: str, email: str, password: str, role: str) -> TemplateResponse:
-    """Insert a new user. On success, details["id"] holds the new user's id."""
+    """Insert a new user. On success, details["user_id"] holds the new user's id."""
     conn = cur = None
     try:
         conn = getConnection()
@@ -51,7 +51,7 @@ def createUser(name: str, email: str, password: str, role: str) -> TemplateRespo
             (name, email, password, role),  # 'password' is the hash from the frontend
         )
         conn.commit()
-        return TemplateResponse(True, "OK", {"id": cur.lastrowid})
+        return TemplateResponse(True, "OK", {"user_id": cur.lastrowid})
     except IntegrityError:
         if conn:
             conn.rollback()
@@ -75,7 +75,7 @@ def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(
-                "SELECT id, name, email, role, password_hash FROM users "
+                "SELECT user_id, name, email, role, password_hash FROM users "
                 "WHERE email = %s AND role = %s LIMIT 1",
                 (email, role),
             )
@@ -102,9 +102,9 @@ def getScholarships(offset: int, limit: int) -> TemplateResponse:
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(
-                "SELECT id, name, min_education_level, min_passing_percentage, max_age, "
+                "SELECT scholarship_id, name, min_education_level, min_passing_percentage, max_age, "
                 "one_child_req, minority_category_req, benefit_amount, deadline "
-                "FROM scholarships ORDER BY deadline ASC, id ASC LIMIT %s OFFSET %s",
+                "FROM scholarships ORDER BY deadline ASC, scholarship_id ASC LIMIT %s OFFSET %s",
                 (limit, offset),
             )
             rows = [_serialize(r) for r in cur.fetchall()]
@@ -168,14 +168,14 @@ def searchApplications(application_id: int) -> TemplateResponse:
             row = _serialize(row)
 
             cur.execute(
-                "SELECT id, type, path, created_at AS `timestamp` FROM documents "
+                "SELECT application_id, type, path, created_at AS `timestamp` FROM documents "
                 "WHERE application_id = %s ORDER BY id ASC",
                 (application_id,),
             )
             row["documents"] = [_serialize(r) for r in cur.fetchall()]
 
             cur.execute(
-                "SELECT id, document_id, result, confidence, created_at AS `timestamp` "
+                "SELECT application_id, document_id, result, confidence, created_at AS `timestamp` "
                 "FROM audit_logs WHERE application_id = %s ORDER BY id DESC",
                 (application_id,),
             )
@@ -201,7 +201,7 @@ def createDocument(type: str, user_id: int, application_id: int, path: str) -> T
                 (type, user_id, application_id, path),
             )
             conn.commit()
-            return TemplateResponse(True, "OK", {"id": cur.lastrowid})
+            return TemplateResponse(True, "OK", {"application_id": cur.lastrowid})
     except IntegrityError:
         return TemplateResponse(False, "Invalid user_id or application_id.", {})
     except Error as e:
