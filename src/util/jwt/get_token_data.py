@@ -3,6 +3,11 @@ from ..template_response import TemplateResponse;
 from flask import Request;
 
 def getTokenData(request: Request) -> dict:
+
+# automatically gets token from the request and
+# extracts data out of it
+# --------------------------------------------------
+
 	auth = request.authorization;
 	jwt_token = None;
 

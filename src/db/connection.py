@@ -7,6 +7,10 @@ load_dotenv();
 
 # Environment variables must be DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME
 def getConnection():
+
+# creating a connection object to the DB server
+# --------------------------------------------------
+
     """Open and return a new DB connection. Caller must close it."""
     return mysql.connector.connect(
         host=getenv("DB_HOST"),

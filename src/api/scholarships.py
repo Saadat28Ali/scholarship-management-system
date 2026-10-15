@@ -6,6 +6,10 @@ from ..db.queries import getScholarships;
 from flask import request;
 
 def scholarships():
+
+# checking request JSON shape
+# --------------------------------------------------
+
 	req_json: request.get_json();
 	if not checkDictShape(req_json, {
 		"offset",
@@ -14,6 +18,9 @@ def scholarships():
 		return TemplateResponse(msg="Request JSON must contain keys 'offset' and 'limit'.", details={
 			"req_json": req_json
 		}).getJSON();
+
+# getting scholarship data and returing it
+# --------------------------------------------------
 
 	result: dict = getScholarships(req_json.offset, req_json.limit);
 	if not result["success"]:

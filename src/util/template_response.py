@@ -1,6 +1,11 @@
 from flask import jsonify;
 
 class TemplateResponse:
+
+# class for creating standard responses to be sent
+# back to the user and also for internal use
+# --------------------------------------------------
+
 	def __init__(
 		self,
 		success = False,

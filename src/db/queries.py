@@ -5,12 +5,11 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from .connection import getConnection
-from ..util.template_response import TemplateResponse; 
+from ..util.template_response import TemplateResponse;
 
 
 ROLES = {"student", "officer"}
 AUDIT_RESULTS = {"tampered", "verified"}
-
 
 @contextmanager
 def _cursor(dictionary: bool = False):
@@ -23,7 +22,6 @@ def _cursor(dictionary: bool = False):
 		cur.close()
 		conn.close()
 
-
 def _serialize(row: dict) -> dict:
 	"""Make DB values JSON-safe (dates -> ISO strings, Decimal -> float)."""
 	out = {}
@@ -35,7 +33,6 @@ def _serialize(row: dict) -> dict:
 		else:
 			out[k] = v
 	return out
-
 
 # Users
 
@@ -64,7 +61,6 @@ def createUser(name: str, email: str, password: str, role: str) -> TemplateRespo
 			cur.close()
 		if conn:
 			conn.close()
-
 
 def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
 	"""
@@ -240,9 +236,7 @@ def createAuditLog(result: str, confidence: float, document_id: int,
 	except Error as e:
 		return TemplateResponse(False, str(e), {})
 
-
 # this i have done on basis of days, that how old is the application, i will change this further according to the db or other changes..
-
 
 def getDashboard(days: int) -> TemplateResponse:
 	"""Summary stats for the last `days` days (1-365)."""
@@ -299,4 +293,3 @@ def getDashboard(days: int) -> TemplateResponse:
 		})
 	except Error as e:
 		return TemplateResponse(False, str(e), {})
- 

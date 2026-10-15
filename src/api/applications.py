@@ -7,6 +7,10 @@ from ..db.queries import getApplications;
 from flask import request;
 
 def applications():
+
+# checking request JSON shape
+# --------------------------------------------------
+
 	req_json: dict = request.get_json();
 	if not checkDictShape(req_json, {
 		"offset",
@@ -16,9 +20,15 @@ def applications():
 			"req_json": req_json
 		}).getJSON();
 
+# getting token data
+# --------------------------------------------------
+
 	token_data: TemplateResponse = getTokendata(request);
 	if not token_data.success:
 		return TemplateResponse(msg="JWT Err: " + token_data.msg, details=token_data.details);
+
+# getting application data
+# --------------------------------------------------
 
 	result: dict = {};
 	if token_data.details["token_data"]["role"] == "officer":
@@ -44,6 +54,9 @@ def applications():
 		return TemplateResponse(msg="DB Err: " + result["msg"], details={
 			"req_json": req_json
 		}).getJSON();
+
+# returning application data
+# --------------------------------------------------
 
 	applications: list[dict] | None = result["details"].get("rows");
 	if applications is None:

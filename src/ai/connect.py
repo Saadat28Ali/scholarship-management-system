@@ -15,6 +15,10 @@ ROOT_DIR: str = path.abspath(getcwd());
 # --------------------------------------------------
 
 async def connect(filename: str, document_type: str):
+
+# querying model server for tamper detection
+# --------------------------------------------------
+
 	try:
 		async with httpx.AsyncClient(timeout = 60.0) as client:
 			with open(path.abspath(path.join(ROOT_DIR, filename)), "rb") as f:

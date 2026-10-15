@@ -13,6 +13,9 @@ from ..db.queries import searchUser, searchApplications, createDocument, createA
 ROOT_DIR: str = path.abspath(getcwd());
 
 async def verify():
+# checking if request form has the required fields
+# --------------------------------------------------
+
 	document_type: str = request.form.get("document_type");
 	application_id: str = request.form.get("application_id");
 
@@ -24,11 +27,17 @@ async def verify():
 	if "file" not in request.files:
 		return TemplateResponse(msg="Request files must contain key 'image'.").getJSON();
 
+# getting token data
+# --------------------------------------------------
+
 	token_data: dict = getTokenData(request);
 	if not token_data.success:
 		return TemplateResponse(msg="JWT err: " + token_data.msg, details={
 			"form": request.form
 		}).getJSON();
+
+# getting user data
+# --------------------------------------------------
 
 	result: TemplateResponse = searchUser(
 		token_data.details["token_data"]["email"],
@@ -46,6 +55,9 @@ async def verify():
 
 	user_data: dict = result.details["row"];
 
+# getting application data
+# --------------------------------------------------
+
 	result: TemplateResponse = searchApplications(application_id);
 	if not result.success:
 		return TemplateResponse(msg="DB err: " + result.msg, details={
@@ -57,6 +69,9 @@ async def verify():
 			"form": request.form
 		}).getJSON();
 
+# saving image file sent by the FE
+# --------------------------------------------------
+
 	try:
 		mkdir(path.abspath(path.join(ROOT_DIR, "./ocrfiles")));
 	except FileExistsError:
@@ -67,15 +82,19 @@ async def verify():
 		request.files["file"].save(fh);
 		print(f"File saved as {filename}.");
 
-	result: dict = searchApplications(application_id=application_id);
-	if not result.success:
-		return TemplateResponse(msg="Could not find application. DB err: " + result.msg, details={
-			"form": request.form
-		}).getJSON();
-	if result.details["row"] is None:
-		return TemplateResponse(msg="Given application does not exist.", details={
-			"form": request.form
-		}).getJSON();
+
+#	result: dict = searchApplications(application_id=application_id);
+#	if not result.success:
+#		return TemplateResponse(msg="Could not find application. DB err: " + result.msg, details={
+#			"form": request.form
+#		}).getJSON();
+#	if result.details["row"] is None:
+#		return TemplateResponse(msg="Given application does not exist.", details={
+#			"form": request.form
+#		}).getJSON();
+
+# inserting record into documents table
+# --------------------------------------------------
 
 	result: dict = createDocument(
 		type=document_type,
@@ -89,9 +108,15 @@ async def verify():
 		}).getJSON();
 	document_id: int = result.details["id"];
 
+# performing tampering detection
+# --------------------------------------------------
+
 	result: dict = await connect(filename, document_type);
 	if not result.success:
 		return result.getJSON();
+
+# inserting row in auditlog table
+# --------------------------------------------------
 
 	audit_log_result: dict = createAuditLog(
 		result="tampered" if result.details["model_response"]["tamper_detection"]["is_tampered"] else "verified",
@@ -104,6 +129,9 @@ async def verify():
 		return TemplateResponse(msg="Could not create audit log. DB err: " + audit_log_result.msg, details={
 			"form": request.form
 		}).getJSON();
+
+# returning final response
+# --------------------------------------------------
 
 	return TemplateResponse(True, "Model run.", {
 		"model_response": filterDictByKeys(result.details["model_response"], {
