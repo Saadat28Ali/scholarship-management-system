@@ -1,16 +1,6 @@
 import re
 
-"""
-Scholarship chatbot (rule-based, standard-library only).
 
-Run:       python chatbot.py
-Data mode: dummy records, no database required.
-SQL later: replace get_scholarships() with a repository/database implementation
-           returning dictionaries with the same field names.
-
-Conversation state is supplied by the caller, so a Flask route can keep a
-separate state dictionary per user/session rather than sharing one global state.
-"""
 
 EDUCATION_RANK = {
     "10th": 1,
@@ -790,7 +780,7 @@ def respond(message, profile):
                 "I can help with scholarship searches and eligibility details. Tell me your current course or "
                 "education level, and I'll look for relevant options in the dataset."
             )
-        return "What course or education level are you currently pursuing — for example, BCA, MCA, graduation or postgraduation?"
+        return "What course or education level are you currently pursuing for example, BCA, MCA, graduation or postgraduation?"
 
     # If the student just answered a follow-up, or shared profile details, re-run the search.
     # Otherwise, only search when the message asks for scholarships or contains useful profile facts.
