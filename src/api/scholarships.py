@@ -22,13 +22,13 @@ def scholarships():
 # getting scholarship data and returing it
 # --------------------------------------------------
 
-	result: dict = getScholarships(req_json.offset, req_json.limit);
-	if not result["success"]:
-		return TemplateResponse(msg="DB Err: " + result["msg"], details={
+	result: dict = getScholarships(req_json["offset"], req_json["limit"]);
+	if not result.success:
+		return TemplateResponse(msg="DB Err: " + result.msg, details={
 			"req_json": req_json
 		}).getJSON();
 
-	scholarships: list[dict] = result["details"].get("rows");
+	scholarships: list[dict] = result.details.get("rows");
 	if scholarships is None:
 		return TemplateResponse(success=True, msg="No scholarships available.").getJSON();
 

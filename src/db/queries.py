@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from .connection import getConnection
-from ..util.template_response import TemplateResponse; 
+from ..util.template_response import TemplateResponse;
 
 
 ROLES = {"student", "officer"}
@@ -75,7 +75,7 @@ def searchUser(email: str, password: str | None, role: str) -> TemplateResponse:
     try:
         with _cursor(dictionary=True) as (_, cur):
             cur.execute(
-                "SELECT user_id, name, email, role, password_hash FROM users "
+                "SELECT user_id, name, email, role, password_hash, is_admin FROM users "
                 "WHERE email = %s AND role = %s LIMIT 1",
                 (email, role),
             )
@@ -123,16 +123,16 @@ def getApplications(user_id: int | None, offset: int, limit: int) -> TemplateRes
     query = (
         "SELECT a.application_id, u.name AS user_name, s.name AS scholarship_name, a.status, "
         "a.education_level, a.passing_percentage, a.income, "
-        "a.created_at AS `timestamp`, a.minority_category "
+        "a.timestamp AS `timestamp`, a.minority_category "
         "FROM applications a "
-        "JOIN users u ON u.id = a.user_id "
-        "JOIN scholarships s ON s.id = a.scholarship_id "
+        "JOIN users u ON u.user_id = a.user_id "
+        "JOIN scholarships s ON s.scholarship_id = a.scholarship_id "
     )
     params: list = []
     if user_id is not None:
         query += "WHERE a.user_id = %s "
         params.append(user_id)
-    query += "ORDER BY a.created_at DESC, a.id DESC LIMIT %s OFFSET %s"
+    query += "ORDER BY a.timestamp DESC, a.application_id DESC LIMIT %s OFFSET %s"
     params += [limit, offset]
 
     try:
@@ -293,7 +293,6 @@ def getDashboard(days: int) -> TemplateResponse:
         })
     except Error as e:
         return TemplateResponse(False, str(e), {})
- 
 
 def createScholarship(
     name: str,

@@ -2,7 +2,7 @@ from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
 from ..util.jwt.get_token_data import getTokenData;
-from ..db.queries import getApplications;
+from ..db.queries import getApplications, searchUser;
 
 from flask import request;
 
@@ -23,16 +23,16 @@ def applications():
 # getting token data
 # --------------------------------------------------
 
-	token_data: TemplateResponse = getTokendata(request);
+	token_data: TemplateResponse = getTokenData(request);
 	if not token_data.success:
-		return TemplateResponse(msg="JWT Err: " + token_data.msg, details=token_data.details);
+		return TemplateResponse(msg="JWT Err: " + token_data.msg, details=token_data.details).getJSON();
 
 # getting application data
 # --------------------------------------------------
 
-	result: dict = {};
+	result: None | TemplateResponse = None;
 	if token_data.details["token_data"]["role"] == "officer":
-		result: dict = getApplications(user_id=None, offset=offset, limit=limit);
+		result = getApplications(user_id=None, offset=offset, limit=limit);
 	else:
 		result = searchUser(
 			token_data.details["token_data"]["email"],
@@ -48,17 +48,17 @@ def applications():
 				"req_json": req_json
 			}).getJSON();
 
-		result = getApplications(user_id=result.details["row"]["user_id"], offset=offset, limit=limit);
+		result = getApplications(user_id=result.details["row"]["user_id"], offset=req_json["offset"], limit=req_json["limit"]);
 
-	if not result["success"]:
-		return TemplateResponse(msg="DB Err: " + result["msg"], details={
+	if not result.success:
+		return TemplateResponse(msg="DB Err: " + result.msg, details={
 			"req_json": req_json
 		}).getJSON();
 
 # returning application data
 # --------------------------------------------------
 
-	applications: list[dict] | None = result["details"].get("rows");
+	applications: list[dict] | None = result.details.get("rows");
 	if applications is None:
 		return TemplateResponse(success=True, msg="No applications in system.").getJSON();
 

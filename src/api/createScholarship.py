@@ -1,9 +1,10 @@
+from flask import request;
+
 from ..util.template_response import TemplateResponse;
 from ..util.check_dict_shape import checkDictShape;
 from ..util.filter_dict import filterDictByKeys;
-# from ..db.queries import createScholarship as dbCreateScholarship;
-
-from flask import request;
+from ..util.jwt.get_token_data import getTokenData;
+from ..db.queries import createScholarship as dbCreateScholarship;
 
 def createScholarship():
 
@@ -51,7 +52,17 @@ def createScholarship():
 # creating scholarship and returning result
 # --------------------------------------------------
 
-	result: TemplateResponse = dbCreateScholarship(*req_json);
+	result: TemplateResponse = dbCreateScholarship(
+		name = req_json["name"],
+		benefit_amount = req_json["benefit_amount"],
+		deadline = req_json["deadline"],
+		min_education_level = req_json["min_education_level"],
+		min_passing_percentage = req_json["min_passing_percentage"],
+		max_age = req_json["max_age"],
+		max_income = req_json["max_income"],
+		one_child_req = req_json["one_child_req"],
+		minority_category_req = req_json["minority_category_req"]
+	);
 	if not result.success:
 		return TemplateResponse(msg="DB error: " + result.msg, details={
 			"req_json": req_json
