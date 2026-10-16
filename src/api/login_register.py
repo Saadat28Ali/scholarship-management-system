@@ -43,6 +43,10 @@ def login():
 # --------------------------------------------------
 
 	return TemplateResponse(True, "User found.", {
+		"email": req_json["email"],
+		"password": req_json["password"],
+		"role": req_json["role"],
+		"is_admin": user_details["is_admin"],
 		"token": createToken({
 			"email": req_json["email"],
 			"password": req_json["password"],
