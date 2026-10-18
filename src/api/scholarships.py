@@ -43,7 +43,7 @@ def scholarships():
 				"minority_category_req",
 				"benefit_amount",
 				"deadline"
-			}) for row in scholarships["rows"]
+			}) for row in scholarships
 		]
 	}).getJSON();
 
