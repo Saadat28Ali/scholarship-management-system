@@ -33,4 +33,9 @@ def chatbot():
 
 # returning final response
 # -------------------------------------------------
-	return respond(req_json["message"], req_json["profile"]);
+
+	chat_response: str = respond(req_json["message"], req_json["profile"]);
+	return TemplateResponse(success=True, msg="Chat message processed.", details={
+		"updated_profile": req_json["profile"],
+		"chat_response": chat_response
+	}).getJSON();
