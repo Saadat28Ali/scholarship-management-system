@@ -7,10 +7,15 @@ from decimal import Decimal
 
 from .connection import getConnection
 from ..util.template_response import TemplateResponse;
-from ..util.pw_hash import PwHash;
+# from ..util.pw_hash import PwHash;
 
 ROLES = {"student", "officer"}
 AUDIT_RESULTS = {"tampered", "verified"}
+
+#! for create application
+APPLICATION_STATUSES = {"submitted", "processing", "verified"}
+EDUCATION_LEVELS = {"10th", "12th", "graduation", "postgraduation"}
+MINORITY_CATEGORIES = {"Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Parsi"}
 
 
 @contextmanager
@@ -186,6 +191,9 @@ def searchApplications(application_id: int) -> TemplateResponse:
         return TemplateResponse(False, str(e), {})
 
 
+
+
+
 # Documents & audit logs (used by /verify)
 
 def createDocument(type: str, user_id: int, application_id: int, path: str) -> TemplateResponse:
@@ -330,6 +338,91 @@ def createScholarship(
             cur.execute(query, params)
             conn.commit()
             return TemplateResponse(True, "OK", {"id": cur.lastrowid})
+    except IntegrityError as e:
+        return TemplateResponse(False, f"Integrity error: {e}", {})
+    except Error as e:
+        return TemplateResponse(False, str(e), {})
+
+
+
+
+
+def createApplication(
+    user_id: int,
+    scholarship_id: int,
+    status: str,
+    education_level: str,
+    passing_percentage: int,
+    income: int,
+    timestamp: str,
+    minority_category: str
+) -> TemplateResponse:
+    # 1. Input validations
+    if status not in APPLICATION_STATUSES:
+        return TemplateResponse(
+            False,
+            f"Invalid status. Must be one of: {', '.join(sorted(APPLICATION_STATUSES))}.",
+            {}
+        )
+
+    if education_level not in EDUCATION_LEVELS:
+        return TemplateResponse(
+            False,
+            f"Invalid education level. Must be one of: {', '.join(sorted(EDUCATION_LEVELS))}.",
+            {}
+        )
+
+    try:
+        passing_percentage = int(passing_percentage)
+        income = int(income)
+    except (TypeError, ValueError):
+        return TemplateResponse(False, "passing_percentage and income must be integers.", {})
+
+    if passing_percentage < 0:
+        return TemplateResponse(False, "passing_percentage cannot be less than 0.", {})
+
+    if income < 0:
+        return TemplateResponse(False, "income cannot be less than 0.", {})
+
+    try:
+        datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError):
+        return TemplateResponse(False, "timestamp must be in 'YYYY-MM-DD HH:MM:SS' format.", {})
+
+    if minority_category not in MINORITY_CATEGORIES:
+        return TemplateResponse(
+            False,
+            f"Invalid minority category. Must be one of: {', '.join(sorted(MINORITY_CATEGORIES))}.",
+            {}
+        )
+
+  
+    query = (
+        "INSERT INTO applications ("
+        "user_id, scholarship_id, status, education_level, "
+        "passing_percentage, income, created_at, minority_category"
+        ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+    )
+    params = (
+        user_id,
+        scholarship_id,
+        status,
+        education_level,
+        passing_percentage,
+        income,
+        timestamp,
+        minority_category,
+    )
+
+    try:
+        with _cursor() as (conn, cur):
+            cur.execute(query, params)
+            conn.commit()
+            return TemplateResponse(
+                True,
+                "OK",
+                {"application_id": cur.lastrowid}
+            )
     except IntegrityError as e:
         return TemplateResponse(False, f"Integrity error: {e}", {})
     except Error as e:
