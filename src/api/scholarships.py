@@ -35,6 +35,7 @@ def scholarships():
 	return TemplateResponse(success=True, msg="Scholarships found.", details={
 		"rows": [
 			filterDictByKeys(row, {
+				"scholarship_id",
 				"name",
 				"min_education_level",
 				"min_passing_percentage",
