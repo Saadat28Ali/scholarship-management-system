@@ -102,6 +102,6 @@ def register():
 # Returning final response
 # --------------------------------------------------
 
-	new_user_id: str = result.details["id"];
+	new_user_id: str = result.details["user_id"];
 #	new_user_id: str = result["details"]["id"];
 	return TemplateResponse(msg="User created.").getJSON();
