@@ -32,7 +32,7 @@ def applications():
 
 	result: None | TemplateResponse = None;
 	if token_data.details["token_data"]["role"] == "officer":
-		result = getApplications(user_id=None, offset=offset, limit=limit);
+		result = getApplications(user_id=None, offset=req_json["offset"], limit=req_json["limit"]);
 	else:
 		result = searchUser(
 			token_data.details["token_data"]["email"],
