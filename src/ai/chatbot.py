@@ -2,14 +2,6 @@ import re
 import sys
 from pathlib import Path
 
-"""
-Scholarship chatbot with rule-based NLP and live MySQL scholarship records.
-
-Run this module from src/api with the project's src/db/connection.py configured.
-Conversation state is supplied by the caller, so Flask should keep a separate
-state dictionary per user/session rather than sharing one global state.
-"""
-
 EDUCATION_RANK = {
     "10th": 1,
     "12th": 2,
@@ -58,12 +50,7 @@ SCHEMA_INFO = {
 
 
 def get_scholarships():
-    """Fetch scholarship records from MySQL using the project's connection helper.
-
-    The returned dictionaries retain the field names expected by the eligibility
-    and response functions below. Connection errors are allowed to surface rather
-    than silently falling back to fake scholarship data.
-    """
+   
     
     src_dir = Path(__file__).resolve().parents[1]
     if str(src_dir) not in sys.path:
@@ -401,23 +388,34 @@ def choose_follow_up(filters):
 
 
 def build_results_reply(filters, offset=0, page_size=3):
-    """Render one page of results and remember the displayed scholarship IDs."""
+    """Return structured scholarship data instead of formatting records into a string."""
     results = search_scholarships(filters)
+    profile_state = filters.get("_profile_state")
+
     if not results:
-        profile_state = filters.get("_profile_state")
         if profile_state is not None:
             profile_state["_last_results"] = []
             profile_state["_last_offset"] = 0
             profile_state["_last_total"] = 0
             profile_state["_last_filters"] = {}
+
         if filters.get("income_intent") == "scholarship_limit":
-            return (
+            message = (
                 "I couldn't find any scholarships whose specified maximum "
                 "family-income limit is strictly below "
                 f"{format_money(filters.get('income_amount'))}. "
                 "Unknown limits are excluded from this comparison."
             )
-        return "I couldn't find any scholarships matching the information provided in the database."
+        else:
+            message = "I couldn't find any scholarships matching the information provided in the database."
+
+        return {
+            "message": message,
+            "total": 0,
+            "offset": 0,
+            "has_more": False,
+            "scholarships": [],
+        }
 
     matches = [item for item in results if item[1] == "matches"]
     possible = [item for item in results if item[1] == "possible"]
@@ -431,7 +429,7 @@ def build_results_reply(filters, offset=0, page_size=3):
         criteria.append(f"family income: {format_money(filters['income_amount'])}")
     elif filters.get("income_intent") == "scholarship_limit":
         criteria.append(
-            f"scholarship maximum income limit strictly below "
+            "scholarship maximum income limit strictly below "
             f"{format_money(filters['income_amount'])}"
         )
     if filters.get("age") is not None:
@@ -442,29 +440,29 @@ def build_results_reply(filters, offset=0, page_size=3):
     heading = "Search results"
     if criteria:
         heading += " for " + ", ".join(criteria)
-    heading += f"\nPotential matches: {len(possible)} | Checks passed: {len(matches)}"
-    heading += "\nNote: results reflect conditions currently stored in the database. Verify official scheme details before applying."
+    heading += (
+        f". Potential matches: {len(possible)} | Checks passed: {len(matches)}. "
+        "Results reflect conditions currently stored in the database; verify "
+        "official scheme details before applying."
+    )
 
     page = results[offset:offset + page_size]
-    lines = [heading]
-    for index, (scholarship, status, reasons) in enumerate(page, start=1):
-        label = "MATCHES STORED CHECKS" if status == "matches" else "POSSIBLE — VERIFY DETAILS"
-        lines.append(
-            f"\n{index}. {scholarship['name']} [{label}]"
-            f"\n   Scholarship ID: {scholarship['scholarship_id']}"
-            f"\n   Benefit: {format_money(scholarship['benefit_amount'])}"
-            f"\n   Minimum education: {scholarship['min_education_level'] or 'Not specified'}"
-            f"\n   Minimum marks: {scholarship['min_passing_percentage'] if scholarship['min_passing_percentage'] is not None else 'Not specified'}"
-            f"\n   Maximum age: {scholarship['max_age'] if scholarship['max_age'] is not None else 'Not specified'}"
-            f"\n   Maximum income: {format_money(scholarship['max_income'])}"
-            f"\n   Only-child requirement: {('Yes' if scholarship['one_child_req'] == 1 else 'No' if scholarship['one_child_req'] == 0 else 'Not specified')}"
-            f"\n   Required minority category: {scholarship['minority_category_req'] or 'Not specified'}"
-            f"\n   Deadline: {scholarship['deadline'] or 'Not specified'}"
-            f"\n   Created at: {scholarship['timestamp'] or 'Not specified'}"
-            f"\n   Why: {', '.join(reasons)}"
-        )
+    scholarship_items = []
+    for scholarship, status, reasons in page:
+        # Keep the database fields (including integer scholarship_id) as fields,
+        # not embedded in a formatted text string.
+        item = dict(scholarship)
+        timestamp = item.get("timestamp")
+        deadline = item.get("deadline")
+        if timestamp is not None:
+            item["timestamp"] = str(timestamp)
+        if deadline is not None:
+            item["deadline"] = str(deadline)
 
-    profile_state = filters.get("_profile_state")
+        item["status"] = status
+        item["reasons"] = reasons
+        scholarship_items.append(item)
+
     if profile_state is not None:
         profile_state["_last_results"] = [
             item[0]["scholarship_id"] for item in page
@@ -477,15 +475,19 @@ def build_results_reply(filters, offset=0, page_size=3):
         }
 
     shown_end = offset + len(page)
-    if shown_end < len(results):
-        lines.append(
-            f"\nShowing {offset + 1}–{shown_end} of {len(results)}. "
-            "Type 'show more' to see the next results."
-        )
+    has_more = shown_end < len(results)
+    if has_more:
+        heading += f" Showing {offset + 1}-{shown_end} of {len(results)} results."
     else:
-        lines.append(f"\nShowing {shown_end} of {len(results)} results.")
+        heading += f" Showing {shown_end} of {len(results)} results."
 
-    return "\n".join(lines)
+    return {
+        "message": heading,
+        "total": len(results),
+        "offset": offset,
+        "has_more": has_more,
+        "scholarships": scholarship_items,
+    }
 
 
 def _make_profile_filters(profile, sort=None):
@@ -572,7 +574,7 @@ def _selected_result(message, profile):
 
     ids = profile.get("_last_results", [])
     if number is None or number > len(ids):
-        return "I couldn't identify that item in the last results. Please say 'first one', 'second one', or run a search again."
+        return make_response("I couldn't identify that item in the last results. Please say 'first one', 'second one', or run a search again.")
 
     scholarship_id = ids[number - 1]
     scholarship = next(
@@ -580,18 +582,32 @@ def _selected_result(message, profile):
         None,
     )
     if not scholarship:
-        return "I couldn't find that scholarship in the current database records."
+        return make_response("I couldn't find that scholarship in the current database records.")
 
-    return (
-        f"{scholarship['name']}\n"
-        f"Benefit: {format_money(scholarship['benefit_amount'])}\n"
-        f"Minimum education: {scholarship['min_education_level'] or 'Not specified'}\n"
-        f"Minimum marks: {scholarship['min_passing_percentage'] if scholarship['min_passing_percentage'] is not None else 'Not specified'}\n"
-        f"Maximum age: {scholarship['max_age'] if scholarship['max_age'] is not None else 'Not specified'}\n"
-        f"Maximum family income: {format_money(scholarship['max_income'])}\n"
-        f"Required minority category: {scholarship['minority_category_req'] or 'Not specified'}\n"
-        f"Deadline: {scholarship['deadline'] or 'Not specified'}"
+    item = dict(scholarship)
+    if item.get("timestamp") is not None:
+        item["timestamp"] = str(item["timestamp"])
+    if item.get("deadline") is not None:
+        item["deadline"] = str(item["deadline"])
+    return make_response(
+        f"Details for {item.get('name', 'the selected scholarship')}.",
+        scholarships=[item],
+        total=1,
     )
+
+
+def make_response(message, scholarships=None, total=0, offset=0, has_more=False, follow_up=None):
+    """Return a consistent dictionary suitable for Flask/JSON responses."""
+    response = {
+        "message": message,
+        "total": total,
+        "offset": offset,
+        "has_more": has_more,
+        "scholarships": scholarships or [],
+    }
+    if follow_up:
+        response["follow_up"] = follow_up
+    return response
 
 
 def respond(message, profile):
@@ -599,13 +615,13 @@ def respond(message, profile):
     lower = text.lower()
 
     if not text:
-        return "Please type a question."
+        return make_response("Please type a question.")
 
     if lower in {"exit", "quit"}:
         return None
 
     if lower in {"hi", "hello", "hey", "good morning", "good evening"}:
-        return STANDARD_GREETING
+        return make_response(STANDARD_GREETING)
 
     if lower in {"clear", "reset", "start over", "reset profile"}:
         for key in list(profile):
@@ -616,20 +632,20 @@ def respond(message, profile):
         profile["_last_offset"] = 0
         profile["_last_total"] = 0
         profile["_last_filters"] = {}
-        return "I've cleared your student profile and search context for this session."
+        return make_response("I've cleared your student profile and search context for this session.")
 
     schema = schema_answer(text)
     if schema:
-        return schema
+        return make_response(schema)
 
-    # Follow-up navigation uses the previous search, not a fresh eligibility search.
+    
     if lower in {"show more", "more", "next", "next results", "show me more"}:
         previous_filters = profile.get("_last_filters", {})
         if not previous_filters:
-            return "There isn't a previous search to continue. Tell me what scholarships you're looking for."
+            return make_response("There isn't a previous search to continue. Tell me what scholarships you're looking for.")
         next_offset = profile.get("_last_offset", 0) + 3
         if next_offset >= profile.get("_last_total", 0):
-            return "You've already seen all results from the last search."
+            return make_response("You've already seen all results from the last search.")
         filters = dict(previous_filters)
         filters["_profile_state"] = profile
         profile["_pending_question"] = None
@@ -639,7 +655,7 @@ def respond(message, profile):
     if selected is not None:
         return selected
 
-    # If the bot asked a question, interpret a short answer in that context.
+    
     answered_pending = _apply_pending_answer(text, profile)
 
     extracted = understand(text)
@@ -651,15 +667,14 @@ def respond(message, profile):
     if extracted.get("income_intent") == "applicant_income":
         profile["income"] = extracted["income_amount"]
 
-    # A comparison of scholarship limits is independent of the student's profile.
+    
     if extracted.get("income_intent") == "scholarship_limit":
         profile["_pending_question"] = None
         comparison_filters = dict(extracted)
         comparison_filters["_profile_state"] = profile
         return build_results_reply(comparison_filters)
 
-    # If a pending answer was accepted, do not let a generic amount parse overwrite
-    # it or interpret it as a different field.
+    
     sort = extracted.get("sort")
     filters = _make_profile_filters(profile, sort=sort)
 
@@ -672,7 +687,7 @@ def respond(message, profile):
             known_bits.append(f"family income {format_money(filters['income_amount'])}")
         detail = " and ".join(known_bits)
         prefix = f"I've noted {detail}. " if detail else ""
-        return (
+        return make_response(
             prefix + "What is your current education level: 10th pass, 12th pass, "
             "graduation, or postgraduation?"
         )
@@ -683,7 +698,18 @@ def respond(message, profile):
     question_key, question = choose_follow_up(filters)
     if question:
         profile["_pending_question"] = question_key
-        return reply + "\n\nTo narrow these results further: " + question
+        if isinstance(reply, dict):
+            reply["follow_up"] = question
+        else:
+            reply = {
+                "message": reply,
+                "total": 0,
+                "offset": 0,
+                "has_more": False,
+                "scholarships": [],
+                "follow_up": question,
+            }
+        return reply
 
     profile["_pending_question"] = None
     return reply
@@ -725,7 +751,18 @@ def main():
         if reply is None:
             print("Goodbye!")
             break
-        print("\nBot:", reply)
+        if isinstance(reply, dict):
+            print("\nBot:", reply.get("message", ""))
+            for index, scholarship in enumerate(reply.get("scholarships", []), start=1):
+                print(f"\\n{index}. {scholarship.get('name', 'Unnamed scholarship')}")
+                print(f"   Scholarship ID: {scholarship.get('scholarship_id')}")
+                print(f"   Benefit: {format_money(scholarship.get('benefit_amount'))}")
+                print(f"   Status: {scholarship.get('status', 'unknown')}")
+                print(f"   Reasons: {', '.join(scholarship.get('reasons', []))}")
+            if reply.get("follow_up"):
+                print("\nTo narrow these results further:", reply["follow_up"])
+        else:
+            print("Bot:", reply.get("message", ""))
 
 
 if __name__ == "__main__":
