@@ -451,11 +451,16 @@ def build_results_reply(filters, offset=0, page_size=3):
         label = "MATCHES STORED CHECKS" if status == "matches" else "POSSIBLE — VERIFY DETAILS"
         lines.append(
             f"\n{index}. {scholarship['name']} [{label}]"
+            f"\n   Scholarship ID: {scholarship['scholarship_id']}"
             f"\n   Benefit: {format_money(scholarship['benefit_amount'])}"
             f"\n   Minimum education: {scholarship['min_education_level'] or 'Not specified'}"
             f"\n   Minimum marks: {scholarship['min_passing_percentage'] if scholarship['min_passing_percentage'] is not None else 'Not specified'}"
             f"\n   Maximum age: {scholarship['max_age'] if scholarship['max_age'] is not None else 'Not specified'}"
             f"\n   Maximum income: {format_money(scholarship['max_income'])}"
+            f"\n   Only-child requirement: {('Yes' if scholarship['one_child_req'] == 1 else 'No' if scholarship['one_child_req'] == 0 else 'Not specified')}"
+            f"\n   Required minority category: {scholarship['minority_category_req'] or 'Not specified'}"
+            f"\n   Deadline: {scholarship['deadline'] or 'Not specified'}"
+            f"\n   Created at: {scholarship['timestamp'] or 'Not specified'}"
             f"\n   Why: {', '.join(reasons)}"
         )
 
