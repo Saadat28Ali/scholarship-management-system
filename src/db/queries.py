@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from .connection import getConnection
 from ..util.template_response import TemplateResponse;
-# from ..util.pw_hash import PwHash;
+from ..util.pw_hash import PwHash;
 
 ROLES = {"student", "officer"}
 AUDIT_RESULTS = {"tampered", "verified"}
