@@ -354,7 +354,6 @@ def createApplication(
     education_level: str,
     passing_percentage: int,
     income: int,
-    timestamp: str,
     minority_category: str
 ) -> TemplateResponse:
     # 1. Input validations
@@ -384,11 +383,6 @@ def createApplication(
     if income < 0:
         return TemplateResponse(False, "income cannot be less than 0.", {})
 
-    try:
-        datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-    except (TypeError, ValueError):
-        return TemplateResponse(False, "timestamp must be in 'YYYY-MM-DD HH:MM:SS' format.", {})
-
     if minority_category not in MINORITY_CATEGORIES:
         return TemplateResponse(
             False,
@@ -396,12 +390,12 @@ def createApplication(
             {}
         )
 
-  
+    # 2. Database insertion
     query = (
         "INSERT INTO applications ("
         "user_id, scholarship_id, status, education_level, "
-        "passing_percentage, income, created_at, minority_category"
-        ") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        "passing_percentage, income, minority_category"
+        ") VALUES (%s, %s, %s, %s, %s, %s, %s)"
     )
     params = (
         user_id,
@@ -410,7 +404,6 @@ def createApplication(
         education_level,
         passing_percentage,
         income,
-        timestamp,
         minority_category,
     )
 
@@ -418,10 +411,14 @@ def createApplication(
         with _cursor() as (conn, cur):
             cur.execute(query, params)
             conn.commit()
+
+            # Handle cursor.lastrowid whether used as a property or callable method
+            last_id = cur.lastrowid() if callable(getattr(cur, "lastrowid", None)) else cur.lastrowid
+
             return TemplateResponse(
                 True,
                 "OK",
-                {"application_id": cur.lastrowid}
+                {"application_id": last_id}
             )
     except IntegrityError as e:
         return TemplateResponse(False, f"Integrity error: {e}", {})
