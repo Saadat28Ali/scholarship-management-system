@@ -12,6 +12,7 @@ from .api.model import verify;
 from .api.dashboard import dashboard;
 from .api.createScholarship import createScholarship;
 from .api.chatbot import chatbot;
+from .api.createApplication import createApplication;
 
 ROOT_DIR: str = path.abspath(getcwd())
 
@@ -27,6 +28,7 @@ app.add_url_rule(rule="/verify", view_func=verify, methods=["POST"]);
 app.add_url_rule(rule="/dashboard", view_func=dashboard, methods=["POST"]);
 app.add_url_rule(rule="/createScholarship", view_func=createScholarship, methods=["POST"]);
 app.add_url_rule(rule="/chatbot", view_func=chatbot, methods=["POST"]);
+app.add_url_rule(rule="/createApplication", view_func=createApplication, methods=["POST"]);
 
 if __name__ == "__main__":
 	app.run(debug=True, host="127.0.0.1", port=5000);
