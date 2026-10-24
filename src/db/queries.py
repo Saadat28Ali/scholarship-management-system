@@ -4,7 +4,6 @@ import math
 from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
 from .connection import getConnection
 from ..util.template_response import TemplateResponse;
 from ..util.pw_hash import PwHash;
@@ -354,7 +353,7 @@ def createApplication(
     education_level: str,
     passing_percentage: int,
     income: int,
-    minority_category: Optional[str] = None
+    minority_category: str | None = None
 ) -> TemplateResponse:
     # 1. Input validations
     if status not in APPLICATION_STATUSES:
@@ -382,6 +381,9 @@ def createApplication(
 
     if income < 0:
         return TemplateResponse(False, "income cannot be less than 0.", {})
+
+    if minority_category == "":
+        minority_category = None
 
     if minority_category is not None and minority_category not in MINORITY_CATEGORIES:
         return TemplateResponse(
