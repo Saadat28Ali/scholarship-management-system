@@ -13,6 +13,7 @@ from .api.dashboard import dashboard;
 from .api.createScholarship import createScholarship;
 from .api.chatbot import chatbot;
 from .api.createApplication import createApplication;
+#from .api.getScholarship import getScholarship;
 
 ROOT_DIR: str = path.abspath(getcwd())
 

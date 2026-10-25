@@ -19,7 +19,7 @@ def createApplication():
 		"income",
 		"minority_category"
 	}):
-		return TemplateResponse(msg="Request JSON must contain keys ", details={
+		return TemplateResponse(msg="Request JSON must contain keys scholarship_id, education_level, passing_percentage, income and minority_category.", details={
 			"req_json": req_json
 		}).getJSON();
 
@@ -41,6 +41,7 @@ def createApplication():
 		}).getJSON();
 
 # searching user and getting user details
+# --------------------------------------------------
 
 	result: TemplateResponse = searchUser(
 		email = token_data.details["token_data"]["email"],
