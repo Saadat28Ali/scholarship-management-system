@@ -15,18 +15,38 @@ DOCUMENTS: dict = {
 		"income_certificate"
 	},
 	"min_education_level": {
-		"10th_marksheet",
-		"12th_marksheet",
-		"graduation_marksheet",
-		"postgraduation_marksheet",
-		"graduation_degree",
-		"postgraduation_degree"
+		"10th": {
+			"10th_marksheet"
+		},
+		"12th": {
+			"10th_marksheet",
+			"12th_marksheet"
+		},
+		"graduation": {
+			"10th_marksheet",
+			"12th_marksheet",
+			"graduation_marksheet_or_degree"
+		},
+		"postgraduation": {
+			"10th_marksheet",
+			"12th_marksheet",
+			"graduation_marksheet_or_degree",
+			"postgraduation_marksheet_or_degree"
+		}
 	},
 	"min_passing_percentage": {
-		"10th_marksheet",
-		"12th_marksheet",
-		"graduation_marksheet",
-		"postgraduation_marksheet"
+		"10th": {
+			"10th_marksheet"
+		},
+		"12th": {
+			"12th_marksheet"
+		},
+		"graduation": {
+			"graduation_marksheet"
+		},
+		"postgraduation": {
+			"postgraduation_marksheet"
+		}
 	},
 	"minority_category_req": {
 		"religion_affidavit"
@@ -64,7 +84,10 @@ def getScholarship():
 	req_docs: dict = {};
 	for key in result.details:
 		if result.details[key] is not None and key in DOCUMENTS:
-			req_docs[key] = list(DOCUMENTS[key]);
+			if key in {"min_education_level", "min_passing_percentage"}:
+				req_docs[key] = list(DOCUMENTS[key][result.details["min_education_level"]]);
+			else:
+				req_docs[key] = list(DOCUMENTS[key]);
 	result.details["req_docs"] = req_docs;
 
 # returning final response
