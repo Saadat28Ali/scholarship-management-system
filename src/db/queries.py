@@ -430,7 +430,7 @@ def createApplication(
 
 
 def getScholarship(scholarship_id: int) -> TemplateResponse:
-    query = "SELECT * FROM scholarships WHERE scholarship_id = %s"
+    query = "SELECT * FROM scholarships WHERE scholarship_id = %s LIMIT 1"
     
     try:
         with _cursor() as (conn, cur):
