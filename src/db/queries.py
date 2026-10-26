@@ -439,7 +439,6 @@ def getScholarship(scholarship_id: int) -> TemplateResponse:
             
             if not row:
                 return TemplateResponse(False, "Scholarship not found.", {})
-                
             columns = [col[0] for col in cur.description]
             return TemplateResponse(True, "OK", dict(zip(columns, row)))
     except Exception as e:

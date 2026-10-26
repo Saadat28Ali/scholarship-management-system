@@ -6,6 +6,36 @@ from ..util.filter_dict import filterDictByKeys;
 from ..util.jwt.get_token_data import getTokenData;
 from ..db.queries import getScholarship as dbGetScholarship;
 
+DOCUMENTS: dict = {
+	"max_age": {
+		"birth_certificate",
+		"10th_marksheet"
+	},
+	"max_income": {
+		"income_certificate"
+	},
+	"min_education_level": {
+		"10th_marksheet",
+		"12th_marksheet",
+		"graduation_marksheet",
+		"postgraduation_marksheet",
+		"graduation_degree",
+		"postgraduation_degree"
+	},
+	"min_passing_percentage": {
+		"10th_marksheet",
+		"12th_marksheet",
+		"graduation_marksheet",
+		"postgraduation_marksheet"
+	},
+	"minority_category_req": {
+		"religion_affidavit"
+	},
+	"one_child_req": {
+		"sgc_affidavit"
+	}
+};
+
 def getScholarship():
 
 # checking request JSON shape
@@ -19,7 +49,7 @@ def getScholarship():
 			"req_json": req_json
 		}).getJSON();
 
-# returning final response
+# getting scholarship data from DB
 # --------------------------------------------------
 
 	result: TemplateResponse = dbGetScholarship(req_json["scholarship_id"]);
@@ -28,6 +58,18 @@ def getScholarship():
 			"req_json": req_json
 		}).getJSON();
 
+# getting document requirements
+# --------------------------------------------------
+
+	req_docs: dict = {};
+	for key in result.details:
+		if result.details[key] is not None and key in DOCUMENTS:
+			req_docs[key] = list(DOCUMENTS[key]);
+	result.details["req_docs"] = req_docs;
+
+# returning final response
+# --------------------------------------------------
+
 	return TemplateResponse(True, "Scholarship found.", {
-		*result.details
+		**result.details
 	}).getJSON();
