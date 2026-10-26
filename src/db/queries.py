@@ -426,3 +426,21 @@ def createApplication(
         return TemplateResponse(False, f"Integrity error: {e}", {})
     except Error as e:
         return TemplateResponse(False, str(e), {})
+
+
+
+def getScholarship(scholarship_id: int) -> TemplateResponse:
+    query = "SELECT * FROM scholarships WHERE scholarship_id = %s"
+    
+    try:
+        with _cursor() as (conn, cur):
+            cur.execute(query, (scholarship_id,))
+            row = cur.fetchone()
+            
+            if not row:
+                return TemplateResponse(False, "Scholarship not found.", {})
+                
+            columns = [col[0] for col in cur.description]
+            return TemplateResponse(True, "OK", dict(zip(columns, row)))
+    except Exception as e:
+        return TemplateResponse(False, str(e), {})
