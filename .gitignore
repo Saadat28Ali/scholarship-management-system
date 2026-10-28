@@ -220,3 +220,4 @@ __marimo__/
 .env
 ocrfiles/
 api_docs.txt
+user_documents/

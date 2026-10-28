@@ -20,7 +20,7 @@ async def verifyDocument():
 	if document is None:
 		return TemplateResponse(msg="Form data must contain field document.", details={}).getJSON();
 
-	file_path: str = abspath(join(getcwd(), f"user_documents/{strftime('%Y-%m-%d %H:%M:%S (%z)')}.jpg"));
+	file_path: str = abspath(join(getcwd(), f"user_documents/{strftime('%Y-%m-%d %H-%M-%S')}.jpg"));
 	document.save(file_path);
 
 # verifying document

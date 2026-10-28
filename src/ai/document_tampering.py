@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 import httpx;
 
+from os import getenv
+
 from ..util.template_response import TemplateResponse;
 
 load_dotenv();
@@ -13,7 +15,7 @@ async def connect(filename: str, document_type: str) -> TemplateResponse:
 # --------------------------------------------------
 
 	try:
-		async with httpx.AsyncClient(timeout = 60.0) as client:
+		async with httpx.AsyncClient(timeout = 240.0) as client:
 			with open(filename, "rb") as f:
 				response = await client.post(
 					getenv("MODEL_URL"),
@@ -29,6 +31,7 @@ async def connect(filename: str, document_type: str) -> TemplateResponse:
 					"model_response": response.json()
 				});
 	except Exception as e:
+		print(type(e));
 		return TemplateResponse(msg="Model err: " + str(e), details={
 			"filename": filename
 		});
