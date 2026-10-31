@@ -62,7 +62,7 @@ def createApplication():
 		user_id = user_id,
 		scholarship_id = req_json["scholarship_id"],
 		status = "submitted",
-		education_level = req_json["education_level"],
+		education_level = req_json["education_level"].lower(),
 		passing_percentage = req_json["passing_percentage"],
 		income = req_json["income"],
 		minority_category = req_json["minority_category"]
