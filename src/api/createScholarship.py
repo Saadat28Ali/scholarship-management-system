@@ -56,7 +56,7 @@ def createScholarship():
 		name = req_json["name"],
 		benefit_amount = req_json["benefit_amount"],
 		deadline = req_json["deadline"],
-		min_education_level = req_json["min_education_level"],
+		min_education_level = req_json["min_education_level"].lower(),
 		min_passing_percentage = req_json["min_passing_percentage"],
 		max_age = req_json["max_age"],
 		max_income = req_json["max_income"],
