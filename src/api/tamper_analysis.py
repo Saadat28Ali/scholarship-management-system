@@ -5,14 +5,14 @@ from os import getcwd, mkdir;
 from time import strftime;
 
 from ..util.template_response import TemplateResponse;
-from ..ai.document_tampering import connect;
+from ..ai.document_tampering import tamperAnalysis as aiTamperAnalysis;
 
 try:
 	mkdir(join(abspath(getcwd()), "user_documents"));
 except FileExistsError:
 	pass;
 
-async def verifyDocument():
+async def tamperAnalysis():
 # checking request form data and saving document
 # --------------------------------------------------
 
@@ -26,9 +26,9 @@ async def verifyDocument():
 # verifying document
 # --------------------------------------------------
 
-	result: TemplateResponse = await connect(file_path, "passport");
+	result: TemplateResponse = await aiTamperAnalysis(file_path, "passport");
 	if not result.success:
 		return TemplateResponse(msg="Model error: " + result.msg, details={}).getJSON();
 	return TemplateResponse(True, "Model run.", {
-		"verification_result": result.details
+		"analysis_result": result.details
 	}).getJSON();

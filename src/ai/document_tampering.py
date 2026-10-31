@@ -9,7 +9,7 @@ load_dotenv();
 
 # --------------------------------------------------
 
-async def connect(filename: str, document_type: str) -> TemplateResponse:
+async def tamperAnalysis(filename: str, document_type: str) -> TemplateResponse:
 
 # querying model server for tamper detection
 # --------------------------------------------------
@@ -18,12 +18,13 @@ async def connect(filename: str, document_type: str) -> TemplateResponse:
 		async with httpx.AsyncClient(timeout = 240.0) as client:
 			with open(filename, "rb") as f:
 				response = await client.post(
-					getenv("MODEL_URL"),
+					getenv("MODEL_URL") + "/tamper-analysis",
 					files = {
 						"file": f
 					},
 					data = {
-						"doc_type": document_type
+						"doc_type": document_type,
+						"include_visualization": False
 					}
 				);
 				response.raise_for_status();
